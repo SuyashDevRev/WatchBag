@@ -1,0 +1,358 @@
+{
+  "info": {
+    "name": "WatchBag API",
+    "description": "WatchBag API — Express + tRPC v11 + Better Auth + Drizzle/Neon + TMDB + Cloudinary.\n\n## URL conventions\n- **tRPC query**: `GET  {{baseUrl}}/trpc/<router>.<procedure>[?input=<urlEncodedJSON>]`\n- **tRPC mutation**: `POST {{baseUrl}}/trpc/<router>.<procedure>` with JSON body (the input object itself — no wrapping)\n- **Better Auth**: `POST {{baseUrl}}/api/auth/<endpoint>`\n\ntRPC responses: `{ result: { data: ... } }` or `{ error: { message, code, data } }`.\n\n## Auth (session cookies)\nSessions use an httpOnly cookie `watchbag.session_token`. Postman persists cookies per host, so sign in once and subsequent requests carry the session. To \"log out\" in Postman, hit Sign out or clear cookies via the Cookies link.\n\nBetter Auth rejects POSTs without an `Origin` header (CSRF defense). The Auth folder sets `Origin: {{corsOrigin}}` on the requests that need it.\n\n## Flow suggestion\n1. Auth → Sign up (or Sign in)\n2. Watchbag → Create\n3. Show → Search (TMDB) → Add to bag\n4. Watchbag → Get (see shows joined in)\n5. Show → Move status (drag-and-drop)\n6. Upload → Sign image upload (avatar/cover)\n7. Watchbag → Update (attach coverImageUrl) or Delete",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "watchbag-collection-v1",
+    "_exporter_id": "watchbag"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health (REST)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        },
+        {
+          "name": "tRPC health.ping",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/trpc/health.ping", "host": ["{{baseUrl}}"], "path": ["trpc", "health.ping"] }
+          }
+        },
+        {
+          "name": "tRPC health.db",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/trpc/health.db", "host": ["{{baseUrl}}"], "path": ["trpc", "health.db"] },
+            "description": "SELECT NOW() through Drizzle → Neon. First hit after idle ≈ 800ms cold start; subsequent hits fast."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Better Auth endpoints + tRPC session helpers. Cookies persist across requests.",
+      "item": [
+        {
+          "name": "Sign up (email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Origin", "value": "{{corsOrigin}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"you@example.com\",\n  \"password\": \"at-least-8-chars\",\n  \"name\": \"Your Name\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/sign-up/email", "host": ["{{baseUrl}}"], "path": ["api", "auth", "sign-up", "email"] }
+          }
+        },
+        {
+          "name": "Sign in (email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Origin", "value": "{{corsOrigin}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"you@example.com\",\n  \"password\": \"at-least-8-chars\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/sign-in/email", "host": ["{{baseUrl}}"], "path": ["api", "auth", "sign-in", "email"] }
+          }
+        },
+        {
+          "name": "Sign in with Google (browser only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/auth/sign-in/google", "host": ["{{baseUrl}}"], "path": ["api", "auth", "sign-in", "google"] },
+            "description": "Opens Google's consent screen. Doesn't work from Postman directly — open the URL in a real browser."
+          }
+        },
+        {
+          "name": "Sign out",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Origin", "value": "{{corsOrigin}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/sign-out", "host": ["{{baseUrl}}"], "path": ["api", "auth", "sign-out"] }
+          }
+        },
+        {
+          "name": "tRPC auth.me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/trpc/auth.me", "host": ["{{baseUrl}}"], "path": ["trpc", "auth.me"] }
+          }
+        },
+        {
+          "name": "tRPC auth.whoami (protected)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/trpc/auth.whoami", "host": ["{{baseUrl}}"], "path": ["trpc", "auth.whoami"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Watchbag",
+      "description": "CRUD for watchbags. `explore` + `get` (public bags) are open; everything else is protected.",
+      "item": [
+        {
+          "name": "explore (public feed)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/trpc/watchbag.explore", "host": ["{{baseUrl}}"], "path": ["trpc", "watchbag.explore"] }
+          }
+        },
+        {
+          "name": "listMine (protected)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/trpc/watchbag.listMine", "host": ["{{baseUrl}}"], "path": ["trpc", "watchbag.listMine"] }
+          }
+        },
+        {
+          "name": "get",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trpc/watchbag.get?input=%7B%22id%22%3A%22{{watchbagId}}%22%7D",
+              "host": ["{{baseUrl}}"],
+              "path": ["trpc", "watchbag.get"],
+              "query": [{ "key": "input", "value": "%7B%22id%22%3A%22{{watchbagId}}%22%7D" }]
+            },
+            "description": "Set the `watchbagId` collection variable first. Public bags visible to anyone; private bags only to the owner."
+          }
+        },
+        {
+          "name": "create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My Watchbag\",\n  \"description\": \"Things I want to watch\",\n  \"isPublic\": false\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/trpc/watchbag.create", "host": ["{{baseUrl}}"], "path": ["trpc", "watchbag.create"] }
+          }
+        },
+        {
+          "name": "update",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{watchbagId}}\",\n  \"title\": \"Renamed Bag\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/trpc/watchbag.update", "host": ["{{baseUrl}}"], "path": ["trpc", "watchbag.update"] }
+          }
+        },
+        {
+          "name": "setPublic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{watchbagId}}\",\n  \"isPublic\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/trpc/watchbag.setPublic", "host": ["{{baseUrl}}"], "path": ["trpc", "watchbag.setPublic"] }
+          }
+        },
+        {
+          "name": "delete",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{watchbagId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/trpc/watchbag.delete", "host": ["{{baseUrl}}"], "path": ["trpc", "watchbag.delete"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Show (TMDB)",
+      "description": "TMDB search + adding titles to a watchbag. `search` and `getByTmdb` are public; mutations are protected and require you to own the target watchbag.",
+      "item": [
+        {
+          "name": "search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trpc/show.search?input=%7B%22query%22%3A%22inception%22%7D",
+              "host": ["{{baseUrl}}"],
+              "path": ["trpc", "show.search"],
+              "query": [{ "key": "input", "value": "%7B%22query%22%3A%22inception%22%7D", "description": "URL-encoded JSON. Default: {\"query\":\"inception\"}" }]
+            }
+          }
+        },
+        {
+          "name": "getByTmdb",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trpc/show.getByTmdb?input=%7B%22tmdbId%22%3A27205%2C%22mediaType%22%3A%22movie%22%7D",
+              "host": ["{{baseUrl}}"],
+              "path": ["trpc", "show.getByTmdb"],
+              "query": [{ "key": "input", "value": "%7B%22tmdbId%22%3A27205%2C%22mediaType%22%3A%22movie%22%7D", "description": "{\"tmdbId\":27205,\"mediaType\":\"movie\"} → Inception" }]
+            }
+          }
+        },
+        {
+          "name": "addToBag",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"watchbagId\": \"{{watchbagId}}\",\n  \"tmdbId\": 27205,\n  \"mediaType\": \"movie\",\n  \"status\": \"current\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/trpc/show.addToBag", "host": ["{{baseUrl}}"], "path": ["trpc", "show.addToBag"] },
+            "description": "Upserts the TMDB title into `shows`, then links it to the watchbag with the given status. status ∈ {current, watched, on_hold}."
+          }
+        },
+        {
+          "name": "removeFromBag",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"watchbagId\": \"{{watchbagId}}\",\n  \"showId\": \"{{showId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/trpc/show.removeFromBag", "host": ["{{baseUrl}}"], "path": ["trpc", "show.removeFromBag"] }
+          }
+        },
+        {
+          "name": "moveStatus (drag-and-drop)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"watchbagId\": \"{{watchbagId}}\",\n  \"showId\": \"{{showId}}\",\n  \"status\": \"watched\",\n  \"position\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/trpc/show.moveStatus", "host": ["{{baseUrl}}"], "path": ["trpc", "show.moveStatus"] },
+            "description": "Moves a row to (status, position) inside a bag. Shifts other rows in the target status to make space."
+          }
+        },
+        {
+          "name": "listInBag",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trpc/show.listInBag?input=%7B%22watchbagId%22%3A%22{{watchbagId}}%22%7D",
+              "host": ["{{baseUrl}}"],
+              "path": ["trpc", "show.listInBag"],
+              "query": [{ "key": "input", "value": "%7B%22watchbagId%22%3A%22{{watchbagId}}%22%7D" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Review",
+      "description": "Reviews are attached to a `showId` (our UUID, not TMDB id). Find the showId via watchbag.get or show.listInBag.",
+      "item": [
+        {
+          "name": "listForShow",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trpc/review.listForShow?input=%7B%22showId%22%3A%22{{showId}}%22%7D",
+              "host": ["{{baseUrl}}"],
+              "path": ["trpc", "review.listForShow"],
+              "query": [{ "key": "input", "value": "%7B%22showId%22%3A%22{{showId}}%22%7D" }]
+            }
+          }
+        },
+        {
+          "name": "listMine (protected)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/trpc/review.listMine", "host": ["{{baseUrl}}"], "path": ["trpc", "review.listMine"] }
+          }
+        },
+        {
+          "name": "create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showId\": \"{{showId}}\",\n  \"rating\": 9,\n  \"body\": \"Mind-bending.\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/trpc/review.create", "host": ["{{baseUrl}}"], "path": ["trpc", "review.create"] }
+          }
+        },
+        {
+          "name": "update",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{reviewId}}\",\n  \"rating\": 10\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/trpc/review.update", "host": ["{{baseUrl}}"], "path": ["trpc", "review.update"] }
+          }
+        },
+        {
+          "name": "delete",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"id\": \"{{reviewId}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/trpc/review.delete", "host": ["{{baseUrl}}"], "path": ["trpc", "review.delete"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Upload",
+      "description": "Cloudinary direct-upload. The server signs params; the browser POSTs the file directly to Cloudinary. Files do not pass through our backend.",
+      "item": [
+        {
+          "name": "signImageUpload (protected)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"kind\": \"avatar\"\n}" },
+            "url": { "raw": "{{baseUrl}}/trpc/upload.signImageUpload", "host": ["{{baseUrl}}"], "path": ["trpc", "upload.signImageUpload"] },
+            "description": "Returns `{ cloudName, apiKey, timestamp, signature, folder, uploadUrl }`. Client POSTs multipart/form-data to `uploadUrl` with those fields + the file. kind ∈ {avatar, cover}."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "corsOrigin", "value": "http://localhost:5173", "type": "string" },
+    { "key": "watchbagId", "value": "", "type": "string", "description": "Set after watchbag.create. Copy the `id` field from the response." },
+    { "key": "showId", "value": "", "type": "string", "description": "Our internal UUID for a show (not the TMDB id). Get from watchbag.get → shows[].show.id, or show.listInBag." },
+    { "key": "reviewId", "value": "", "type": "string", "description": "Set after review.create." }
+  ]
+}
