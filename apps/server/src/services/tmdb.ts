@@ -181,3 +181,78 @@ export function posterUrl(posterPath: string | null, size: "w342" | "w500" | "or
   if (!posterPath) return null;
   return `${TMDB_IMG_BASE}/${size}${posterPath}`;
 }
+
+// ---------------------------------------------------------------------------
+// Discovery lists — used by the homepage rails. These are paginated TMDB list
+// endpoints; we normalize to the same shape we use everywhere else.
+// ---------------------------------------------------------------------------
+
+const DiscoveryMovieItem = z.object({
+  id: z.number(),
+  title: z.string(),
+  overview: z.string().nullable().optional(),
+  poster_path: z.string().nullable().optional(),
+  release_date: z.string().nullable().optional(),
+});
+const DiscoveryTvItem = z.object({
+  id: z.number(),
+  name: z.string(),
+  overview: z.string().nullable().optional(),
+  poster_path: z.string().nullable().optional(),
+  first_air_date: z.string().nullable().optional(),
+});
+const DiscoveryTrendingItem = z.object({
+  id: z.number(),
+  media_type: z.enum(["movie", "tv"]),
+  title: z.string().optional(),
+  name: z.string().optional(),
+  overview: z.string().nullable().optional(),
+  poster_path: z.string().nullable().optional(),
+  release_date: z.string().optional(),
+  first_air_date: z.string().optional(),
+});
+const DiscoveryMovieList = z.object({ results: z.array(DiscoveryMovieItem) });
+const DiscoveryTvList = z.object({ results: z.array(DiscoveryTvItem) });
+const DiscoveryTrendingList = z.object({ results: z.array(DiscoveryTrendingItem) });
+
+export async function getTrending(
+  window: "day" | "week" = "day",
+): Promise<NormalizedTitle[]> {
+  const data = await tmdb(
+    `/trending/all/${window}?language=en-US`,
+    DiscoveryTrendingList,
+    `trending:${window}`,
+  );
+  return data.results.map((item) => ({
+    tmdbId: item.id,
+    mediaType: item.media_type,
+    title: item.title ?? item.name ?? "Untitled",
+    overview: item.overview ?? null,
+    posterPath: item.poster_path ?? null,
+    releaseDate: item.release_date ?? item.first_air_date ?? null,
+  }));
+}
+
+export async function getPopularMovies(): Promise<NormalizedTitle[]> {
+  const data = await tmdb(`/movie/popular?language=en-US&page=1`, DiscoveryMovieList, "popular:movie");
+  return data.results.map((item) => ({
+    tmdbId: item.id,
+    mediaType: "movie",
+    title: item.title,
+    overview: item.overview ?? null,
+    posterPath: item.poster_path ?? null,
+    releaseDate: item.release_date ?? null,
+  }));
+}
+
+export async function getPopularTv(): Promise<NormalizedTitle[]> {
+  const data = await tmdb(`/tv/popular?language=en-US&page=1`, DiscoveryTvList, "popular:tv");
+  return data.results.map((item) => ({
+    tmdbId: item.id,
+    mediaType: "tv",
+    title: item.name,
+    overview: item.overview ?? null,
+    posterPath: item.poster_path ?? null,
+    releaseDate: item.first_air_date ?? null,
+  }));
+}

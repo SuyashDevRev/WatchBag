@@ -9,6 +9,7 @@ import { toNodeHandler } from "better-auth/node";
 import { auth } from "./auth/index.js";
 import { env } from "./env.js";
 import { logger } from "./logger.js";
+import { signInRateLimit, signUpRateLimit } from "./middleware/rateLimit.js";
 import { appRouter } from "./routers/index.js";
 import { createContext } from "./trpc/context.js";
 
@@ -22,6 +23,10 @@ app.use(
     credentials: true,
   }),
 );
+
+// Rate limit the brute-forceable endpoints before Better Auth's handler runs.
+app.post("/api/auth/sign-up/email", signUpRateLimit);
+app.post("/api/auth/sign-in/email", signInRateLimit);
 
 // Better Auth exposes its own HTTP handler at /api/auth/*. It parses its own
 // body, so it must be mounted BEFORE express.json().

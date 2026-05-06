@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+/* Dark is the primary theme — declare tokens against the html element. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Bricolage Grotesque", "Inter", sans-serif;
+
+  /* Reds — the WatchBag identity, graded */
+  --color-brand-50: #fef2f2;
+  --color-brand-100: #fee2e2;
+  --color-brand-200: #fecaca;
+  --color-brand-300: #fca5a5;
+  --color-brand-400: #f87171;
+  --color-brand-500: #e53935;
+  --color-brand-600: #b71c1c;
+  --color-brand-700: #991b1b;
+  --color-brand-800: #7a1212;
+  --color-brand-900: #5c0d0d;
+  --color-brand-950: #3c0808;
+
+  /* Neutrals — dark-first */
+  --color-ink-50: #f5f5f4;
+  --color-ink-100: #e7e5e4;
+  --color-ink-200: #a1a1aa;
+  --color-ink-300: #71717a;
+  --color-ink-400: #52525b;
+  --color-ink-500: #3f3f46;
+  --color-ink-600: #27272a;
+  --color-ink-700: #1c1c1e;
+  --color-ink-800: #141415;
+  --color-ink-900: #0a0a0b;
+}
+
+:root {
+  color-scheme: dark;
+  --rail-fade-from: rgb(10 10 11 / 1);
+  --rail-fade-to: rgb(10 10 11 / 0);
+  --viewport-fade: linear-gradient(to top, rgb(10 10 11 / 1) 0%, rgb(10 10 11 / 0) 100%);
+}
+
+/* Light theme — warm off-white with pink/red undertones so the palette still
+   feels like WatchBag instead of a clinical white void. We invert the entire
+   ink scale so existing `bg-ink-800`, `text-ink-50`, `border-ink-600/40` etc.
+   automatically read correctly without touching any component. */
+:root.light {
+  color-scheme: light;
+
+  --color-ink-50: #1a0e10; /* darkest text — almost black with a red undertone */
+  --color-ink-100: #2e1a1d;
+  --color-ink-200: #7a5f63; /* muted body text */
+  --color-ink-300: #8f7277;
+  --color-ink-400: #a98e92;
+  --color-ink-500: #c6aeb2;
+  --color-ink-600: #edd9d9; /* subtle pink border */
+  --color-ink-700: #f7e7e5; /* elevated cards on hover */
+  --color-ink-800: #fbeded; /* cards — warm blush */
+  --color-ink-900: #fdf5f3; /* page bg — creamy off-white with warmth */
+
+  --rail-fade-from: rgb(253 245 243 / 1);
+  --rail-fade-to: rgb(253 245 243 / 0);
+  --viewport-fade: linear-gradient(to top, rgb(253 245 243 / 1) 0%, rgb(253 245 243 / 0) 100%);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-900 text-ink-50 font-sans antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Flow aesthetic — respect reduced motion globally. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Utility: hide scrollbars on horizontal rails while keeping scroll. */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+/* Global keyboard focus ring. Only applied when the user is navigating with
+   the keyboard (:focus-visible); mouse clicks don't get rings. Uses the
+   brand red so it stays on-identity. */
+*:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline-offset: 3px;
+}
+
+/* Fixed gradient at the bottom of the viewport — "content emerging" effect. */
+.viewport-fade-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 120px;
+  pointer-events: none;
+  z-index: 30;
+  background: var(--viewport-fade);
+  transition: opacity 300ms ease;
+}

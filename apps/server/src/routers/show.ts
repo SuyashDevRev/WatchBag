@@ -12,7 +12,13 @@ import {
 
 import { db } from "../db/index.js";
 import { shows, watchbagShows } from "../db/schema.js";
-import { getTitle, searchMulti } from "../services/tmdb.js";
+import {
+  getPopularMovies,
+  getPopularTv,
+  getTitle,
+  getTrending,
+  searchMulti,
+} from "../services/tmdb.js";
 import { protectedProcedure, publicProcedure, router } from "../trpc/trpc.js";
 import { assertOwnsWatchbag } from "./watchbag.js";
 
@@ -42,6 +48,15 @@ export const showRouter = router({
   search: publicProcedure.input(SearchShowsInput).query(({ input }) => {
     return searchMulti(input.query, input.page);
   }),
+
+  // Homepage rails — TMDB-backed discovery lists.
+  trending: publicProcedure
+    .input(z.object({ window: z.enum(["day", "week"]).default("day") }).optional())
+    .query(({ input }) => getTrending(input?.window ?? "day")),
+
+  popularMovies: publicProcedure.query(() => getPopularMovies()),
+
+  popularTv: publicProcedure.query(() => getPopularTv()),
 
   getByTmdb: publicProcedure.input(GetByTmdbInput).query(({ input }) => {
     return getTitle(input.tmdbId, input.mediaType);
