@@ -1,0 +1,48 @@
+# Multi-stage build for @watchbag/server.
+# Stage 1: install + build with the whole monorepo context so we can resolve
+# workspace deps (@watchbag/shared).
+# Stage 2: slim runtime image with just the compiled JS + production deps.
+
+# ---------- deps ----------
+FROM node:22-alpine AS deps
+WORKDIR /repo
+RUN corepack enable
+
+# Copy manifests first for a better layer cache.
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/server/package.json apps/server/
+COPY packages/shared/package.json packages/shared/
+
+RUN pnpm install --frozen-lockfile
+
+# ---------- build ----------
+FROM deps AS build
+WORKDIR /repo
+COPY tsconfig.base.json ./
+COPY packages/shared packages/shared
+COPY apps/server apps/server
+
+# Build shared first, then server (depends on shared).
+RUN pnpm --filter @watchbag/shared build
+RUN pnpm --filter @watchbag/server build
+
+# Prune dev deps so the runtime image is lean.
+RUN pnpm --filter @watchbag/server --prod deploy /app
+
+# ---------- runtime ----------
+FROM node:22-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Only what we need to run: compiled server JS, its node_modules, and the
+# compiled shared package (which server's dist imports from).
+COPY --from=build /app /app
+COPY --from=build /repo/apps/server/dist ./dist
+COPY --from=build /repo/apps/server/drizzle ./drizzle
+
+# Non-root user for a smaller blast radius.
+RUN addgroup -S watchbag && adduser -S watchbag -G watchbag
+USER watchbag
+
+EXPOSE 3000
+CMD ["node", "dist/index.js"]
