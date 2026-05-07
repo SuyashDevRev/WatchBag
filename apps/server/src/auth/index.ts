@@ -50,6 +50,14 @@ export const auth = betterAuth({
   advanced: {
     cookiePrefix: "watchbag",
     useSecureCookies: env.NODE_ENV === "production",
+    // In production the web (vercel.app) and API (fly.dev) live on different
+    // sites, so the session cookie needs SameSite=None to be sent on cross-site
+    // fetch calls. Requires Secure, which useSecureCookies=true gives us.
+    // In development both run on localhost — Lax is fine and safer.
+    defaultCookieAttributes:
+      env.NODE_ENV === "production"
+        ? { sameSite: "none", secure: true }
+        : { sameSite: "lax" },
   },
 });
 
