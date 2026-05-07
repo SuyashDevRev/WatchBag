@@ -6,17 +6,17 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { CreateWatchbagInput } from "@watchbag/shared";
+import type { z } from "zod";
 
 import { Button } from "../components/Button";
 import { Dialog } from "../components/Dialog";
 import { Input } from "../components/Input";
 import { trpc } from "../lib/trpc";
 
-type FormValues = {
-  title: string;
-  description?: string;
-  isPublic: boolean;
-};
+// Resolver v5 / Zod v4 separate input and output types: `isPublic` has a
+// default so it's optional on input, required on output. We stay on the
+// input shape for the form since the checkbox might not be touched.
+type FormValues = z.input<typeof CreateWatchbagInput>;
 
 export function MyWatchbagsPage() {
   const navigate = useNavigate();

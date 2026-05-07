@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
 import { Button } from "../components/Button";
+import { ChangePasswordForm } from "../components/ChangePasswordForm";
 import { Input } from "../components/Input";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { authClient, useSession } from "../lib/auth-client";
@@ -151,6 +152,14 @@ export function SettingsPage() {
             </div>
           </div>
         </div>
+      </Section>
+
+      {/* Security */}
+      <Section
+        title="Security"
+        description="Change your password. Other devices will be signed out when you save."
+      >
+        <ChangePasswordForm />
       </Section>
 
       {/* Appearance */}
