@@ -34,6 +34,17 @@ export function LoginPage() {
     if (session.data?.user) navigate(redirect, { replace: true });
   }, [session.data, navigate, redirect]);
 
+  // Surface OAuth errors that Better Auth bounces us back with (e.g. ?error=state_mismatch).
+  useEffect(() => {
+    const errorCode = params.get("error");
+    if (!errorCode) return;
+    const message =
+      errorCode === "state_mismatch"
+        ? "Your sign-in link expired. Please try again."
+        : `Sign-in failed (${errorCode}).`;
+    toast.error(message);
+  }, [params]);
+
   async function onSubmit(values: LoginValues) {
     setSubmitting(true);
     const { error } = await authClient.signIn.email({

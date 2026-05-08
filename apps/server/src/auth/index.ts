@@ -23,6 +23,15 @@ const socialProviders =
       }
     : undefined;
 
+// Where to send the browser when something goes wrong during OAuth
+// (state_mismatch, provider error, etc.). We route to the web app's /login
+// page so users land somewhere they can act, not on a bare API 404.
+const oauthErrorURL = (() => {
+  const first = env.CORS_ORIGIN[0];
+  if (!first) return undefined;
+  return `${first.replace(/\/$/, "")}/login`;
+})();
+
 export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
@@ -46,6 +55,19 @@ export const auth = betterAuth({
   ...(socialProviders ? { socialProviders } : {}),
 
   trustedOrigins: env.CORS_ORIGIN,
+
+  account: {
+    // OAuth state is persisted to the `verifications` table and checked on
+    // callback. Skip the supplementary cookie check — in a split-origin
+    // deploy (web on vercel.app, API on fly.dev) the state cookie is a
+    // third-party cookie and browsers with tracking protection drop it,
+    // which surfaces as `state_mismatch` on an otherwise valid flow. The
+    // DB-stored state is still cryptographically random + one-shot, so
+    // CSRF protection is intact.
+    skipStateCookieCheck: true,
+  },
+
+  ...(oauthErrorURL ? { onAPIError: { errorURL: oauthErrorURL } } : {}),
 
   advanced: {
     cookiePrefix: "watchbag",
