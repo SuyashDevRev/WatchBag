@@ -5,6 +5,14 @@
   "buildCommand": "pnpm --filter @watchbag/shared build && pnpm --filter @watchbag/web build",
   "outputDirectory": "apps/web/dist",
   "rewrites": [
+    {
+      "source": "/api/auth/:path*",
+      "destination": "https://watchbag-api.fly.dev/api/auth/:path*"
+    },
+    {
+      "source": "/trpc/:path*",
+      "destination": "https://watchbag-api.fly.dev/trpc/:path*"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
