@@ -1,9 +1,27 @@
+import { lazy, Suspense } from "react";
 import { Link } from "react-router";
-import { Hero } from "../components/Hero";
 import { PosterCard } from "../components/PosterCard";
 import { Rail } from "../components/Rail";
 import { trpc } from "../lib/trpc";
 import { useDocumentMeta } from "../lib/useDocumentMeta";
+
+// Lazy-load the 3D hero so three.js + drei ship in their own chunk. The
+// landing fallback reuses the hero's ambient red glows so there's never a
+// blank moment while the chunk is fetched.
+const CinemaHero = lazy(() =>
+  import("../components/three/CinemaHero").then((m) => ({ default: m.CinemaHero })),
+);
+
+function HeroFallback() {
+  return (
+    <section className="relative h-[70vh] overflow-hidden sm:h-[75vh]">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-0 h-[60vmin] w-[60vmin] -translate-x-1/2 rounded-full bg-brand-800/40 blur-[120px]" />
+        <div className="absolute left-1/3 top-1/3 h-[40vmin] w-[40vmin] rounded-full bg-brand-600/20 blur-[100px]" />
+      </div>
+    </section>
+  );
+}
 
 export function HomePage() {
   useDocumentMeta({
@@ -18,7 +36,9 @@ export function HomePage() {
 
   return (
     <>
-      <Hero />
+      <Suspense fallback={<HeroFallback />}>
+        <CinemaHero />
+      </Suspense>
 
       <div className="space-y-14 pb-12">
         <Rail title="Trending today" subtitle="What the world is watching right now">
