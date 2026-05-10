@@ -1,17 +1,15 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Search } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 
-export function Hero() {
-  const ref = useRef<HTMLDivElement>(null);
+// The 2D landing copy — eyebrow, headline, subtitle, search. Renders
+// synchronously on first paint so the page is never blank. The 3D canvas
+// (lazy-loaded, data-gated) slides in behind it as children.
+export function Hero({ backdrop }: { backdrop?: ReactNode }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-
   const { scrollY } = useScroll();
-  // Hero parallax — subtle.
-  const bgY = useTransform(scrollY, [0, 600], [0, -120]);
-  // Fade + shrink the big search as header takes over.
   const heroSearchOpacity = useTransform(scrollY, [0, 220], [1, 0]);
   const heroSearchScale = useTransform(scrollY, [0, 220], [1, 0.96]);
 
@@ -22,21 +20,17 @@ export function Hero() {
   }
 
   return (
-    <section
-      ref={ref}
-      className="relative overflow-hidden pb-20 pt-24 sm:pb-28 sm:pt-32 lg:pb-36 lg:pt-40"
-    >
-      {/* Layered gradient backdrop with a soft red glow. */}
-      <motion.div
-        aria-hidden
-        style={{ y: bgY }}
-        className="pointer-events-none absolute inset-0"
-      >
+    <section className="relative overflow-hidden pb-20 pt-24 sm:pb-28 sm:pt-32 lg:pb-36 lg:pt-40">
+      {/* Ambient red glows — always present, independent of the 3D layer. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-0 h-[60vmin] w-[60vmin] -translate-x-1/2 rounded-full bg-brand-800/40 blur-[120px]" />
         <div className="absolute left-1/3 top-1/3 h-[40vmin] w-[40vmin] rounded-full bg-brand-600/20 blur-[100px]" />
-      </motion.div>
+      </div>
 
-      <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+      {/* Optional 3D / animated backdrop — rendered behind the copy. */}
+      {backdrop}
+
+      <div className="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
