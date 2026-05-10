@@ -31,6 +31,11 @@ export function FlowHeader() {
   }
 
   const isAuthed = !!session.data?.user;
+  // While the session is still resolving on first paint, render a neutral
+  // placeholder instead of the Sign in/Sign up buttons. That avoids the
+  // "buttons flash for a second, then get replaced by the avatar" blip on
+  // refresh for authed users.
+  const authResolving = session.isPending;
 
   return (
     <motion.header
@@ -58,7 +63,9 @@ export function FlowHeader() {
 
         <nav className="hidden items-center gap-1 md:flex">
           <NavLink to="/explore">Explore</NavLink>
-          {isAuthed && <NavLink to="/mywatchbags">My Bags</NavLink>}
+          {/* Only reveal "My Bags" after the session resolves, otherwise it
+              would pop in the same way the sign-in buttons did. */}
+          {!authResolving && isAuthed && <NavLink to="/mywatchbags">My Bags</NavLink>}
         </nav>
 
         {/* Compact search — only visible once scrolled past hero */}
@@ -81,7 +88,9 @@ export function FlowHeader() {
 
         <div className={cn("flex items-center gap-3", "md:ml-0 ml-auto")}>
           <ThemeToggle />
-          {isAuthed ? (
+          {authResolving ? (
+            <AuthPlaceholder />
+          ) : isAuthed ? (
             <AccountMenu />
           ) : (
             <>
@@ -102,6 +111,18 @@ export function FlowHeader() {
         </div>
       </div>
     </motion.header>
+  );
+}
+
+// Neutral pill that occupies the same space the AccountMenu / sign-in buttons
+// would — prevents layout shift when the session resolves and prevents the
+// "buttons flash then get replaced" blip for authed users on refresh.
+function AuthPlaceholder() {
+  return (
+    <div
+      aria-hidden
+      className="inline-flex h-9 w-9 shrink-0 animate-pulse rounded-full bg-ink-800/70 sm:w-28"
+    />
   );
 }
 
