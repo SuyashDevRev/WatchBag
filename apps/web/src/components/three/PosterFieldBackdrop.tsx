@@ -41,7 +41,10 @@ export function PosterFieldBackdrop() {
       aria-hidden
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
+      // Match the hero copy's entrance timing so the backdrop and the
+      // headline swim into view on the same beat instead of one trailing
+      // the other by 200–400ms.
+      transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
       className="pointer-events-none absolute inset-0"
       style={{ maskImage: "radial-gradient(ellipse at center, black 55%, transparent 85%)" }}
     >
