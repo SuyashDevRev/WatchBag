@@ -1,0 +1,55 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - link "WatchBag home" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e8]: watchbag.
+        - navigation [ref=e9]:
+          - link "Explore" [ref=e10] [cursor=pointer]:
+            - /url: /explore
+        - generic [ref=e12]:
+          - img
+          - searchbox "Search" [ref=e13]
+        - radiogroup "Theme" [ref=e15]:
+          - radio "Light" [ref=e16]:
+            - img [ref=e17]
+          - radio "System" [checked] [ref=e23]:
+            - img [ref=e24]
+          - radio "Dark" [ref=e26]:
+            - img [ref=e27]
+    - main [ref=e30]:
+      - generic [ref=e32]:
+        - generic [ref=e33]: Your watchlist, reimagined
+        - heading "Every movie, every show, in one place." [level=1] [ref=e37]:
+          - text: Every movie, every show,
+          - text: in one place.
+        - paragraph [ref=e38]: Build watchbags of what you're watching, what you've seen, and what's next. Share them with friends. Discover what everyone's obsessed with.
+        - generic [ref=e40]:
+          - img
+          - searchbox "Search movies and shows" [ref=e41]
+          - button "Search" [ref=e42]
+      - generic [ref=e43]:
+        - generic [ref=e46]:
+          - heading "Trending today" [level=2] [ref=e47]
+          - paragraph [ref=e48]: What the world is watching right now
+        - generic [ref=e62]:
+          - heading "Popular movies" [level=2] [ref=e63]
+          - paragraph [ref=e64]: Audience favorites this week
+        - generic [ref=e78]:
+          - heading "Popular series" [level=2] [ref=e79]
+          - paragraph [ref=e80]: Binge-worthy TV the internet can't stop watching
+        - generic [ref=e94]:
+          - heading "Public watchbags" [level=2] [ref=e95]
+          - paragraph [ref=e96]: Curated by the WatchBag community
+    - contentinfo [ref=e108]:
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - generic [ref=e111]: WatchBag
+          - generic [ref=e112]: Your watchlists, organized and shareable.
+        - generic [ref=e113]:
+          - link "Powered by TMDB" [ref=e114] [cursor=pointer]:
+            - /url: https://www.themoviedb.org/
+          - generic [ref=e115]: ·
+          - generic [ref=e116]: © 2026 WatchBag
+  - region "Notifications alt+T"

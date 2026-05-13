@@ -1,24 +1,18 @@
-import { useFrame, useLoader } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
-// TMDB's CDN serves images with Access-Control-Allow-Origin: *, so we tell
-// three.js to request them with CORS enabled. Without this, the texture
-// silently fails to upload to the GPU on some browsers.
-class CorsTextureLoader extends THREE.TextureLoader {
-  constructor() {
-    super();
-    this.setCrossOrigin("anonymous");
-  }
-}
-
-// A single poster, textured onto a thin 3D plane. The whole plane gently
-// bobs + rotates in place, while the parent scene handles the scroll-linked
-// camera motion that gives the whole field depth.
+// A single poster, textured onto a thin 3D plane. We load images with a
+// plain <img> tag (no `crossOrigin` attribute) so browsers don't apply CORS
+// gating — TMDB's CDN doesn't send Access-Control-Allow-Origin for image
+// requests, which would otherwise block every texture on the page.
 //
-// We don't use drei's useTexture because we want to fail gracefully: if the
-// image fails to load, the plane renders as a solid dark card rather than
-// crashing the suspense boundary.
+// The tradeoff is that the resulting texture is "tainted" — we can't readPixels
+// on it, which matters for screenshots and postprocessing. Since neither is
+// in play for this hero, painting the texture on a plane is fine.
+//
+// If an image still fails to load (offline, TMDB down, etc.), we render a
+// solid dark-red plane instead of throwing into R3F's suspense boundary.
 
 interface Props {
   url: string;
@@ -30,21 +24,56 @@ interface Props {
 
 export function Poster({ url, position, rotation = [0, 0, 0], scale = 1, phase = 0 }: Props) {
   const ref = useRef<THREE.Mesh>(null);
-  // useLoader's second arg is the class; we can't pass our CORS-configured
-  // instance directly, so we subclass once to embed the crossOrigin default.
-  const texture = useLoader(CorsTextureLoader, url);
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  const [failed, setFailed] = useState(false);
 
-  // Make posters slightly bigger than a pure 2:3 — gives them physical weight.
+  useEffect(() => {
+    let cancelled = false;
+    const img = new Image();
+    // No crossOrigin — keeps TMDB's non-CORS responses from being blocked.
+    img.src = url;
+    img.onload = () => {
+      if (cancelled) return;
+      const t = new THREE.Texture(img);
+      t.needsUpdate = true;
+      t.colorSpace = THREE.SRGBColorSpace;
+      setTexture(t);
+    };
+    img.onerror = () => {
+      if (!cancelled) setFailed(true);
+    };
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
   const [w, h] = useMemo(() => [1 * scale, 1.5 * scale], [scale]);
 
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const t = clock.getElapsedTime() + phase;
-    // Subtle bob and roll — 3s cycle per axis, tiny amplitude.
     ref.current.position.y = position[1] + Math.sin(t * 0.8) * 0.08;
     ref.current.rotation.z = rotation[2] + Math.sin(t * 0.4) * 0.03;
     ref.current.rotation.y = rotation[1] + Math.sin(t * 0.3) * 0.05;
   });
+
+  // Fallback plane: dark red with a soft emissive, so the field still reads
+  // as filled even if several images fail to load.
+  if (failed || !texture) {
+    return (
+      <mesh ref={ref} position={position} rotation={rotation}>
+        <planeGeometry args={[w, h]} />
+        <meshStandardMaterial
+          color="#2a0a0b"
+          emissive="#7a1212"
+          emissiveIntensity={0.18}
+          transparent
+          opacity={0.9}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    );
+  }
 
   return (
     <mesh ref={ref} position={position} rotation={rotation}>
