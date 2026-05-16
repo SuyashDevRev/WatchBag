@@ -115,10 +115,10 @@ export function WatchbagBoardPage() {
     },
   });
 
-  // Add-from-search with optimistic insert. We build a temporary row keyed on
-  // the TMDB id so the tile appears in the target column the moment the drop
-  // lands. When the server returns the real persisted row, we splice it in to
-  // replace the temp (no refetch flash).
+  // Add-from-search with optimistic insert. The server upserts on
+  // (watchbagId, showId), so dragging the same TMDB title in twice is a
+  // move, not a duplicate. The cache update has to mirror that or we end
+  // up with two tiles in the UI for one DB row.
   const addMutation = trpc.show.addToBag.useMutation({
     async onMutate(variables) {
       if (!id) return;
@@ -126,15 +126,34 @@ export function WatchbagBoardPage() {
       const previous = utils.watchbag.get.getData({ id });
       if (!previous) return { previous, tempShowId: null as string | null };
 
+      // If this title is already in the bag, treat the drag as a move +
+      // skip the temp insert. The existing row gets its status/position
+      // rewritten optimistically; onSuccess just refreshes the metadata.
+      const existing = previous.shows.find(
+        (s) =>
+          s.show.tmdbId === variables.tmdbId &&
+          s.show.mediaType === variables.mediaType,
+      );
+
+      if (existing) {
+        const status = (variables.status ?? "current") as Status;
+        const destCount = previous.shows.filter(
+          (s) => s.status === status && s.showId !== existing.showId,
+        ).length;
+        const updatedShows = previous.shows.map((s) =>
+          s.showId === existing.showId ? { ...s, status, position: destCount } : s,
+        );
+        utils.watchbag.get.setData({ id }, { ...previous, shows: updatedShows });
+        return { previous, tempShowId: null as string | null };
+      }
+
+      // First-time add — insert an optimistic temp row, replace it on success.
       const tempShowId = `temp-${variables.tmdbId}-${variables.mediaType}-${Date.now()}`;
 
-      // Find the search tile's metadata so we can render the optimistic row
-      // without waiting for the server to hand back title/poster.
       const meta = searchResults.data?.find(
         (r) => r.tmdbId === variables.tmdbId && r.mediaType === variables.mediaType,
       );
 
-      // End-of-column position for the new tile.
       const destCount = previous.shows.filter((s) => s.status === variables.status).length;
 
       const nowIso = new Date().toISOString();
@@ -163,11 +182,10 @@ export function WatchbagBoardPage() {
       return { previous, tempShowId };
     },
     onSuccess(data, variables, ctx) {
-      if (!id || !data || !ctx?.tempShowId) return;
-      // Replace the temp row with the real server row in-place, keeping the
-      // rest of the cache untouched. No refetch, no flash.
+      if (!id || !data) return;
       const snapshot = utils.watchbag.get.getData({ id });
       if (!snapshot) return;
+
       const realRow = {
         watchbagId: variables.watchbagId,
         showId: data.show.id,
@@ -177,12 +195,15 @@ export function WatchbagBoardPage() {
         show: data.show,
       } as unknown as (typeof snapshot.shows)[number];
 
+      // Reconcile: drop any temp/duplicate rows for this show id and write
+      // exactly one canonical row. Same logic whether this was an insert
+      // or a re-add — the server is the source of truth.
+      const filtered = snapshot.shows.filter(
+        (s) => s.showId !== data.show.id && s.showId !== ctx?.tempShowId,
+      );
       utils.watchbag.get.setData(
         { id },
-        {
-          ...snapshot,
-          shows: snapshot.shows.map((s) => (s.showId === ctx.tempShowId ? realRow : s)),
-        },
+        { ...snapshot, shows: [...filtered, realRow] },
       );
     },
     onError(err, _vars, ctx) {
